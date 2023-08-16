@@ -59,3 +59,7 @@ FROM dealerships d
 LEFT JOIN dealershipemployees de ON d.dealership_id = de.dealership_id
 INNER JOIN employees e ON de.employee_id = e.employee_id
 RIGHT JOIN employeetypes et ON e.employee_type_id = et.employee_type_id;
+
+--Produce a report that lists every dealership, the number of purchases done by each, 
+--and the number of leases done by each.
+

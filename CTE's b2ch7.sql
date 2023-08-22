@@ -134,6 +134,82 @@ SELECT
 	count(DISTINCT s.sale_id) = ms.max_sales;
 
 
+--For the top 5 dealerships, which vehicle models were the most popular in sales?
+WITH topDealerships AS (
+	SELECT 
+		s.dealership_id,
+		d.business_name,
+		count(DISTINCT sale_id) AS total_sales
+		FROM 
+		sales s
+		JOIN dealerships d ON s.dealership_id = d.dealership_id
+		GROUP BY s.dealership_id, d.business_name 
+		ORDER BY total_sales DESC 
+		LIMIT 5
+),
+popularVehicles AS (
+		SELECT 
+			s.dealership_id,
+			d.business_name,
+			v.vehicle_type_id,
+			vt.make || ' ' || vt.model AS vehicle_name,
+			count(s.sale_id) AS vehicle_sales_count
+		FROM 
+		sales s
+		JOIN topDealerships td ON s.dealership_id  = td.dealership_id
+		JOIN vehicles v ON v.vehicle_id = s.vehicle_id 
+		JOIN vehicletypes vt ON v.vehicle_type_id = v.vehicle_type_id 
+		JOIN dealerships d ON s.dealership_id = d.dealership_id 
+		GROUP BY s.dealership_id, d.dealership_id, vt.vehicle_type_id, v.vehicle_type_id, vt.make, vt.model 
+		ORDER BY s.dealership_id,
+				 vehicle_sales_count DESC
+)
+SELECT
+    pv.dealership_id,
+    pv.business_name,
+    pv.vehicle_type_id,
+    pv.vehicle_name,
+    pv.vehicle_sales_count
+FROM 
+    (SELECT 
+         dealership_id,
+         business_name,
+         vehicle_type_id,
+         vehicle_name,
+         vehicle_sales_count,
+         ROW_NUMBER() OVER(PARTITION BY dealership_id ORDER BY vehicle_sales_count DESC) as rn
+     FROM 
+         PopularVehicles) pv
+WHERE 
+    pv.rn = 1;
+
+   
+--For the top 5 dealerships, were there more sales or leases?
+WITH topDealerships AS (
+    SELECT 
+        s.dealership_id,
+        d.business_name,
+        COUNT(DISTINCT sale_id) AS total_sales
+    FROM 
+        sales s
+    JOIN dealerships d ON s.dealership_id = d.dealership_id
+    GROUP BY s.dealership_id, d.business_name 
+    ORDER BY total_sales DESC 
+    LIMIT 5
+)
+SELECT
+    td.dealership_id,
+    td.business_name,
+    SUM(CASE WHEN s.sales_type_id = 1 THEN 1 ELSE 0 END) AS totalPurchases,  -- For Purchase
+    SUM(CASE WHEN s.sales_type_id = 2 THEN 1 ELSE 0 END) AS totalLeases       -- For Lease
+FROM 
+    sales s
+JOIN 
+    topDealerships td ON s.dealership_id = td.dealership_id
+GROUP BY
+    td.dealership_id, td.business_name;
+
+
 
 	
 

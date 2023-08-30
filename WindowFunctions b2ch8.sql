@@ -10,7 +10,7 @@ join
 	sales
 on
 	sales.employee_id = employees.employee_id
-order by employee_name
+order by total_employee_sales desc
    
 --Write a query that shows the total purchase sales income per dealership.
 SELECT DISTINCT 
@@ -93,3 +93,33 @@ FROM
 JOIN 
 	sales s ON s.employee_id = e.employee_id
 ORDER BY total_Employee_Sales DESC
+
+
+--Create a view that shows the employee at 
+--each dealership with the most number of sales.
+WITH employee_sales_count AS (
+    SELECT 
+        s.employee_id, 
+        d.dealership_id, 
+        d.business_name,
+        concat(e.last_name, ', ', e.first_name) AS employee_name,
+        count(s.sale_id) OVER (PARTITION BY s.employee_id) AS emp_sales
+    FROM sales s
+    JOIN employees e ON s.employee_id = e.employee_id
+    JOIN dealerships d ON d.dealership_id = s.dealership_id
+),
+ranked_employees AS (
+    SELECT 
+        business_name, 
+        employee_name, 
+        emp_sales,
+        ROW_NUMBER() OVER (PARTITION BY dealership_id ORDER BY emp_sales DESC) as row_num
+    FROM employee_sales_count
+)
+SELECT 
+    business_name, 
+    employee_name, 
+    emp_sales AS highest_sales_emp
+FROM ranked_employees
+WHERE row_num = 1
+ORDER BY business_name;
